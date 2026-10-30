@@ -173,9 +173,7 @@ export default function ResultView({
           </ul>
           <p className="text-mute mt-2 text-xs">
             + = avantage {names.blue}, − = avantage {names.red}. Basé sur {PRO.meta.games} games pro
-            {PRO.meta.eval && ` ; ce calcul trouve le bon gagnant dans ${Math.round(PRO.meta.eval.accuracy * 100)} % des games pro récentes`}.
-            {!result.ai && " Explication générée sans IA (ajoute une clé API pour une analyse rédigée par Claude)."}
-          </p>
+            {PRO.meta.eval && ` ; ce calcul trouve le bon gagnant dans ${Math.round(PRO.meta.eval.accuracy * 100)} % des games pro récentes`}.          </p>
         </details>
 
         {actions && <div className="flex flex-wrap gap-3 justify-center">{actions}</div>}
