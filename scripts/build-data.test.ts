@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fit, parseGames } from "./build-data";
+import { fit, parseGames, roleMap } from "./build-data";
 
 describe("Oracle's Elixir parsing", () => {
   it("reads picks by role, bans and winner", () => {
@@ -12,6 +12,14 @@ describe("Oracle's Elixir parsing", () => {
     expect(g.red).toEqual(["Renekton", "Ivern", "Orianna", "Varus", "Braum"]);
     expect(g.bans).toContain("KSante");
     expect(g.blueWin).toBe(false);
+  });
+
+  it("roleMap drops off-role one-offs", () => {
+    const g = (top: string) => ({ blue: [top, "B", "C", "D", "E"], red: ["F", "G", "H", "I", "J"] }) as never;
+    const games = [...Array(9).fill(g("Ornn")), { blue: ["X", "B", "Ornn", "D", "E"], red: ["F", "G", "H", "I", "J"] } as never];
+    const roles = roleMap(games, ["Ornn", "Never"]);
+    expect(roles.Ornn).toEqual(["TOP"]); // 1 mid game out of 10 is dropped
+    expect(roles.Never).toEqual([]);
   });
 
   it("logistic fit recovers the sign of a real signal", () => {

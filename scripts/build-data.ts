@@ -115,6 +115,21 @@ export function parseGames(csv: string, toId: (name: string) => string | undefin
   return [...games.values()].filter((g) => g.patch && g.blue.filter(Boolean).length === 5 && g.red.filter(Boolean).length === 5);
 }
 
+// A champion's roles = the ones that make up at least ROLE_SHARE of its pro picks, most played first.
+// Uses every loaded game (not just the patch window) so rarely picked champions still get a role.
+const ROLE_SHARE = 0.15;
+export function roleMap(games: Game[], ids: string[]): Record<string, string[]> {
+  const count: Record<string, number[]> = Object.fromEntries(ids.map((id) => [id, [0, 0, 0, 0, 0]]));
+  for (const g of games) for (const team of [g.blue, g.red]) team.forEach((c, i) => count[c] && count[c][i]++);
+  return Object.fromEntries(
+    ids.map((id) => {
+      const n = count[id], total = n.reduce((a, b) => a + b, 0);
+      const keep = ROLES.map((r, i) => [r, n[i]] as const).filter(([, k]) => total && k / total >= ROLE_SHARE);
+      return [id, keep.sort((a, b) => b[1] - a[1]).map(([r]) => r)];
+    }),
+  );
+}
+
 const patchNum = (p: string) => {
   const [a, b] = p.split(".").map(Number);
   return a * 100 + b;
@@ -221,6 +236,7 @@ async function main() {
 
   const csvs = existsSync(RAW) ? readdirSync(RAW).filter((f) => /^\d{4}\.csv$/.test(f)) : [];
   let games = csvs.flatMap((f) => parseGames(readFileSync(`${RAW}/${f}`, "utf8"), toId));
+  const allGames = games;
 
   const patches = [...new Set(games.map((g) => g.patch))].sort((a, b) => patchNum(b) - patchNum(a)).slice(0, PATCH_WINDOW);
   games = games.filter((g) => patches.includes(g.patch)).sort((a, b) => a.date.localeCompare(b.date));
@@ -257,11 +273,8 @@ async function main() {
     for (const [r, rec] of Object.entries(c.roles)) c.roles[r as keyof typeof c.roles] = { g: +rec.g.toFixed(2), w: +rec.w.toFixed(2) };
 
   writeFileSync(OUT, JSON.stringify(data));
-  // Small file for the room server: champion pool + roles by games played.
-  const roles = Object.fromEntries(
-    Object.values(data.champions).map((c) => [c.id, Object.entries(c.roles).sort((a, b) => b[1].g - a[1].g).map(([r]) => r)]),
-  );
-  writeFileSync("data/roles.json", JSON.stringify(roles));
+  // Small file for the room server and the role filter: champion pool + real roles.
+  writeFileSync("data/roles.json", JSON.stringify(roleMap(allGames, Object.keys(base))));
   console.log(`Écrit ${OUT} — poids :`, data.meta.weights);
 }
 
