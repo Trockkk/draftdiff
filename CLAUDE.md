@@ -6,7 +6,7 @@ Cahier des charges : PROMPT.md. Next.js 16 : lire AGENTS.md avant de toucher aux
 ## Carte du code
 - `src/lib/draft/` : logique pure. `config.ts` (ordre + timers, seule source), `machine.ts` (états de draft), `series.ts` (Bo3/Bo5, Fearless), `roles.ts`, `ai.ts` (bot solo).
 - `src/lib/predict/` : `model.ts` (features + prédiction), `explain.ts` (schéma de l'analyse + texte de secours).
-- `src/lib/room-server.ts` : logique d'une partie en ligne (pure, testée). `party/room.ts` la branche sur PartyKit.
+- `src/lib/room-server.ts` : logique d'une partie en ligne (pure, testée). `party/room.ts` la branche sur PartyServer (Cloudflare Durable Objects, config `wrangler.jsonc`, types dans `party/tsconfig.json`).
 - `src/app/api/analyze/route.ts` : prédiction + appel Claude (côté serveur).
 - `scripts/build-data.ts` : CSV Oracle's Elixir → `data/pro.json`, `data/roles.json` + entraînement du modèle.
 

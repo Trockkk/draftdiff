@@ -1,4 +1,4 @@
-import type * as Party from "partykit/server";
+import { routePartykitRequest, Server, type Connection, type WSMessage } from "partyserver";
 import roles from "../data/roles.json";
 import type { RoleMap } from "../src/lib/draft/roles";
 import type { ClientMsg, ServerMsg } from "../src/lib/room";
@@ -7,27 +7,27 @@ import { IDLE_MS, emptyRoom, nextAlarm, reduce, seatOf, tick, view, type RoomSta
 const ROLES = roles as RoleMap;
 const POOL = Object.keys(ROLES);
 
-// One PartyKit room = one online draft (room id = invite code). The server is the only source of truth.
-export default class Room implements Party.Server {
+// One Durable Object = one online draft (room name = invite code). The server is the only source of truth.
+// State is saved on every change, so the room survives hibernation and restarts.
+export class Room extends Server {
+  static options = { hibernate: true };
   state: RoomState = emptyRoom();
 
-  constructor(readonly room: Party.Room) {}
-
   async onStart() {
-    this.state = (await this.room.storage.get<RoomState>("state")) ?? emptyRoom();
+    this.state = (await this.ctx.storage.get<RoomState>("state")) ?? emptyRoom();
   }
 
-  onConnect(conn: Party.Connection) {
+  onConnect(conn: Connection) {
     this.send(conn);
   }
 
-  onClose(conn: Party.Connection) {
+  onClose(conn: Connection) {
     const side = seatOf(this.state, conn.id);
     if (side) this.commit({ ...this.state, seats: { ...this.state.seats, [side]: { ...this.state.seats[side]!, connId: null } } });
-    else this.broadcast();
+    else this.broadcastState();
   }
 
-  onMessage(raw: string | ArrayBuffer | ArrayBufferView, sender: Party.Connection) {
+  onMessage(sender: Connection, raw: WSMessage) {
     if (typeof raw !== "string" || raw.length > 20_000) return;
     try {
       const msg = JSON.parse(raw) as ClientMsg;
@@ -41,9 +41,9 @@ export default class Room implements Party.Server {
     const now = Date.now();
     const running = this.state.phase === "countdown" || (this.state.phase === "draft" && this.state.draft?.phase !== "done");
     if (!running && now >= this.state.lastActive + IDLE_MS) {
-      // Idle for 2 h: forget the room.
+      // Idle for 2 h: forget the room (keep PartyServer's own __ps_name key).
       this.state = emptyRoom();
-      await this.room.storage.deleteAll();
+      await this.ctx.storage.delete("state");
       return;
     }
     this.commit(tick(this.state, now, POOL, ROLES));
@@ -52,25 +52,32 @@ export default class Room implements Party.Server {
   commit(next: RoomState) {
     const changed = next !== this.state;
     this.state = next;
-    if (changed) void this.room.storage.put("state", next);
-    if (next.phase !== "empty") void this.room.storage.setAlarm(nextAlarm(next));
-    this.broadcast();
+    if (changed) void this.ctx.storage.put("state", next);
+    if (next.phase !== "empty") void this.ctx.storage.setAlarm(nextAlarm(next));
+    this.broadcastState();
   }
 
   spectators() {
     let n = 0;
-    for (const c of this.room.getConnections()) if (!seatOf(this.state, c.id)) n++;
+    for (const c of this.getConnections()) if (!seatOf(this.state, c.id)) n++;
     return n;
   }
 
-  send(conn: Party.Connection, spectators = this.spectators()) {
-    const side = seatOf(this.state, conn.id);
-    const msg: ServerMsg = { t: "state", room: view(this.state, spectators), you: { side }, serverNow: Date.now() };
+  send(conn: Connection, spectators = this.spectators()) {
+    const msg: ServerMsg = { t: "state", room: view(this.state, spectators), you: { side: seatOf(this.state, conn.id) }, serverNow: Date.now() };
     conn.send(JSON.stringify(msg));
   }
 
-  broadcast() {
+  broadcastState() {
     const n = this.spectators();
-    for (const c of this.room.getConnections()) this.send(c, n);
+    for (const c of this.getConnections()) this.send(c, n);
   }
 }
+
+const worker = {
+  async fetch(request: Request, env: Record<string, unknown>) {
+    return (await routePartykitRequest(request, env)) || new Response("Not Found", { status: 404 });
+  },
+};
+
+export default worker;

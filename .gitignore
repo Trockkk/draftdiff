@@ -16,5 +16,5 @@ data/raw/
 .DS_Store
 Thumbs.db
 
-# PartyKit local state
-.partykit/
+# Wrangler local state
+.wrangler/

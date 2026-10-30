@@ -54,7 +54,7 @@ Variable optionnelle : `PATCH_WINDOW=6 npm run data:update` pour changer le nomb
 | `npm run data:update` | Met à jour les stats pro et le modèle |
 | `npm run test` | Tests (draft, séries, serveur de room, parsing des données) |
 | `npm run lint` / `npm run build` | Vérifications avant commit |
-| `npm run party:deploy` | Déploie le serveur des parties sur PartyKit |
+| `npm run party:deploy` | Déploie le serveur des parties sur Cloudflare |
 
 ## Mettre le projet sur GitHub
 
@@ -62,7 +62,7 @@ Variable optionnelle : `PATCH_WINDOW=6 npm run data:update` pour changer le nomb
 2. Dans ce dossier :
 
 ```bash
-git remote add origin https://github.com/TON-PSEUDO/draftdiff.git
+git remote add origin https://github.com/Trockkk/draftdiff.git
 ```
 
 ```bash
@@ -71,25 +71,27 @@ git push -u origin main
 
 ## Mettre le site en ligne
 
-Le site a deux morceaux : le site Next.js (Vercel) et le serveur des parties en ligne (PartyKit, Cloudflare).
+Le site a deux morceaux : le site Next.js (Vercel) et le serveur des parties en ligne (Cloudflare Workers, avec PartyServer).
 
-**1. Serveur des parties (PartyKit, gratuit)**
+**1. Serveur des parties (Cloudflare Workers, gratuit)**
+
+Il te faut un compte Cloudflare gratuit : https://dash.cloudflare.com/sign-up
 
 ```bash
-npx partykit login
+npx wrangler login
 ```
 
 ```bash
 npm run party:deploy
 ```
 
-La commande affiche l'adresse du serveur, du type `draftdiff.TON-PSEUDO.partykit.dev`.
+La commande affiche l'adresse du serveur, du type `draftdiff.TON-SOUS-DOMAINE.workers.dev`.
 
 **2. Site (Vercel, gratuit)**
 
 1. Va sur https://vercel.com, connecte-toi avec GitHub, « Add New Project », choisis `draftdiff`.
 2. Dans *Settings → Environment Variables*, ajoute :
-   - `NEXT_PUBLIC_PARTY_HOST` = l'adresse PartyKit de l'étape 1 (sans `https://`)
+   - `NEXT_PUBLIC_PARTY_HOST` = l'adresse Cloudflare de l'étape 1 (sans `https://`)
    - `ANTHROPIC_API_KEY` = ta clé API Anthropic (optionnel)
 3. Deploy. Chaque `git push` sur `main` redéploie le site. Si tu modifies `party/` ou `src/lib/room-server.ts`, relance aussi `npm run party:deploy`.
 

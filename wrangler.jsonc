@@ -1,0 +1,12 @@
+// Online room server (Cloudflare Workers + Durable Objects via PartyServer).
+{
+  "name": "draftdiff",
+  "main": "party/room.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Binding "Main" => clients connect to the default "main" party: /parties/main/<CODE>
+  "durable_objects": {
+    "bindings": [{ "name": "Main", "class_name": "Room" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
+}
