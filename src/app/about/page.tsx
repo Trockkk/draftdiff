@@ -33,7 +33,9 @@ export default function About() {
       {m.eval ? (
         <p>
           Précision mesurée honnêtement sur les {m.eval.holdoutGames} games les plus récentes (jamais vues à
-          l&apos;entraînement) : {(m.eval.accuracy * 100).toFixed(1)} % de bons pronostics.
+          l&apos;entraînement) : {(m.eval.accuracy * 100).toFixed(1)} % de bons pronostics. Pour comparaison, le side
+          bleu gagne {((PRO.blueSide.w / PRO.blueSide.g) * 100).toFixed(1)} % des games pro : la draft seule ajoute peu
+          d&apos;information, le pourcentage indique surtout quelle draft est la plus confortable.
         </p>
       ) : (
         <p>Pas encore assez de games chargées pour mesurer la précision du modèle.</p>
