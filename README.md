@@ -97,6 +97,24 @@ La commande affiche l'adresse du serveur, du type `draftdiff.TON-SOUS-DOMAINE.wo
 
 GitHub Pages ne convient pas : il ne sert que des fichiers statiques, et la clé API doit rester sur un serveur.
 
+## Activer l'analyse par Claude (clé API)
+
+Sans clé, le pourcentage est calculé quand même (il vient des stats pro, pas de l'IA) et une explication simple est générée à partir des chiffres. Avec une clé, Claude rédige en plus l'analyse : raisons, plan de jeu de chaque équipe, ce qui peut renverser la game.
+
+1. Va sur https://platform.claude.com et crée un compte (ou connecte-toi).
+2. Menu *Billing* : ajoute un moyen de paiement et quelques crédits (5 $ suffisent pour commencer). Dans *Limits*, mets une limite de dépense mensuelle pour être tranquille.
+3. Menu *API Keys* → *Create Key* → nomme-la `draftdiff` → copie la clé (elle commence par `sk-ant-`). Elle ne s'affiche qu'une fois.
+4. Sur https://vercel.com, ouvre le projet `draftdiff` → *Settings* → *Environment Variables* :
+   - Key : `ANTHROPIC_API_KEY`
+   - Value : colle la clé
+   - Environments : Production et Preview, coche *Sensitive*, puis *Save*.
+5. Onglet *Deployments* → sur le dernier déploiement, menu `⋯` → *Redeploy*. Une variable ajoutée ne s'applique qu'aux nouveaux déploiements.
+6. Fais une draft : si l'écran de résultat affiche « Comment … gagne » pour chaque équipe, Claude est actif.
+
+En local : mets `ANTHROPIC_API_KEY=sk-ant-...` dans `.env.local` (jamais commité), puis relance `npm run dev`.
+
+Coût : quelques centimes par analyse avec le modèle par défaut (Claude Opus 5.5). Pour diviser le coût par deux environ, ajoute aussi `ANTHROPIC_MODEL` = `claude-sonnet-5-5` dans Vercel. Une limite de 10 analyses par minute et par visiteur évite les abus.
+
 ## Données et crédits
 
 Stats pro : [Oracle's Elixir](https://oracleselixir.com). Images : Riot Data Dragon. Analyse : Claude (Anthropic).

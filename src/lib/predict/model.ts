@@ -24,11 +24,15 @@ export function matchupRate(data: ProData, role: Role, a: string, b: string, min
 }
 
 export type Factor = {
-  kind: "champ" | "matchup" | "synergy" | "comp" | "side";
-  label: string;
+  kind: "champ" | "matchup" | "synergy" | "comp";
+  role?: Role; // lane factors only
+  label: string; // short title
+  detail: string; // one plain sentence with the real numbers
   value: number; // contribution to the blue logit
   lowData: boolean;
 };
+
+const pctOf = (r: Rec | undefined) => (r && r.g >= 1 ? `${Math.round((r.w / r.g) * 100)} % de victoires sur ${Math.round(r.g)} games` : "aucune game pro");
 
 // Damage profile and frontline from Data Dragon classes (no hand tagging).
 export function compScore(data: ProData, team: TeamPicks) {
@@ -54,12 +58,32 @@ export function features(data: ProData, blue: TeamPicks, red: TeamPicks, own?: {
     const cr = rate(data.champions[r]?.roles[role], sub(!blueWon));
     const champ = logit(cb.wr) - logit(cr.wr);
     sums.champ += champ;
-    factors.push({ kind: "champ", label: `${role} : ${name(data, b)} vs ${name(data, r)} (forme pro)`, raw: champ, lowData: cb.g < MIN_GAMES || cr.g < MIN_GAMES });
+    factors.push({
+      kind: "champ",
+      role,
+      label: `${role} : forme de ${name(data, b)} et ${name(data, r)}`,
+      detail: `En pro à ce poste : ${name(data, b)} ${pctOf(data.champions[b]?.roles[role])}, ${name(data, r)} ${pctOf(data.champions[r]?.roles[role])}.`,
+      raw: champ,
+      lowData: cb.g < MIN_GAMES || cr.g < MIN_GAMES,
+    });
 
     const m = matchupRate(data, role, b, r, sub(b < r ? blueWon : !blueWon));
     const mu = logit(m.wr);
     sums.matchup += mu;
-    factors.push({ kind: "matchup", label: `${role} : ${name(data, b)} vs ${name(data, r)} (matchup)`, raw: mu, lowData: m.g < MIN_GAMES });
+    const mrec = data.matchups[`${role}|${pairKey(b, r)}`];
+    const games = Math.round(mrec?.g ?? 0);
+    const rawWr = mrec && mrec.g ? (b < r ? mrec.w / mrec.g : 1 - mrec.w / mrec.g) : 0.5; // shown to users, unsmoothed
+    factors.push({
+      kind: "matchup",
+      role,
+      label: `${role} : ${name(data, b)} contre ${name(data, r)}`,
+      detail:
+        m.g < MIN_GAMES
+          ? `Face-à-face presque jamais joué en pro (${games} game${games > 1 ? "s" : ""}) : pas de conclusion.`
+          : `En face-à-face pro, ${name(data, b)} gagne ${Math.round(rawWr * 100)} % du temps contre ${name(data, r)} (${games} games).`,
+      raw: mu,
+      lowData: m.g < MIN_GAMES,
+    });
   });
 
   for (const [team, sign, won] of [[blue, 1, blueWon], [red, -1, !blueWon]] as const) {
@@ -69,11 +93,23 @@ export function features(data: ProData, blue: TeamPicks, red: TeamPicks, own?: {
         sums.synergy += sign * logit(s.wr);
       }
   }
-  factors.push({ kind: "synergy", label: "Synergies entre champions", raw: sums.synergy, lowData: false });
+  factors.push({
+    kind: "synergy",
+    label: "Synergies entre champions",
+    detail: "Compare à quel point les duos de chaque équipe gagnent souvent ensemble en pro.",
+    raw: sums.synergy,
+    lowData: false,
+  });
 
   const cb = compScore(data, blue), cr = compScore(data, red);
   sums.comp = cb.score - cr.score;
-  factors.push({ kind: "comp", label: `Profil de comp (dégâts AP ${Math.round(cb.apShare * 100)} % vs ${Math.round(cr.apShare * 100)} %, frontline ${cb.front} vs ${cr.front})`, raw: sums.comp, lowData: false });
+  factors.push({
+    kind: "comp",
+    label: "Équilibre de la composition",
+    detail: `Dégâts magiques : ${Math.round(cb.apShare * 100)} % contre ${Math.round(cr.apShare * 100)} % (50 % = mélange idéal AP/AD). Tanks en première ligne : ${cb.front} contre ${cr.front}.`,
+    raw: sums.comp,
+    lowData: false,
+  });
 
   return { sums, factors };
 }
@@ -86,12 +122,12 @@ export function linear(w: Weights, s: { champ: number; matchup: number; synergy:
 
 export type Prediction = { blueWin: number; factors: Factor[] };
 
+// The verdict judges the drafts only: the blue side bonus learned in training (bias) is left out.
 export function predict(data: ProData, blue: TeamPicks, red: TeamPicks): Prediction {
-  const w = data.meta.weights;
+  const w = { ...data.meta.weights, bias: 0 };
   const { sums, factors } = features(data, blue, red);
-  const scale: Record<Factor["kind"], number> = { champ: w.champ, matchup: w.matchup, synergy: w.synergy, comp: w.comp, side: 1 };
-  const out: Factor[] = factors.map((f) => ({ kind: f.kind, label: f.label, lowData: f.lowData, value: f.raw * scale[f.kind] }));
-  out.push({ kind: "side", label: "Avantage du side bleu (historique pro)", value: w.bias, lowData: false });
+  const scale: Record<Factor["kind"], number> = { champ: w.champ, matchup: w.matchup, synergy: w.synergy, comp: w.comp };
+  const out: Factor[] = factors.map(({ raw, ...f }) => ({ ...f, value: raw * scale[f.kind] }));
   return { blueWin: sigmoid(linear(w, sums)), factors: out };
 }
 

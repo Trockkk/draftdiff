@@ -26,16 +26,15 @@ export default function About() {
       <h2 className="font-display text-xl text-gold-light">Calcul du gagnant</h2>
       <p>
         Un modèle statistique (régression logistique) combine : la forme pro de chaque champion sur son rôle, les matchups
-        de lane, les synergies entre champions, le profil de composition (équilibre AP/AD, frontline) et l&apos;avantage du
-        side bleu. Les petits échantillons sont ramenés vers 50 % pour éviter les conclusions sur 2 games. Ensuite, Claude
+        de lane, les synergies entre champions et le profil de composition (équilibre AP/AD, frontline). Le side
+        (bleu ou rouge) n&apos;est pas pris en compte : seules les drafts sont jugées. Les petits échantillons sont ramenés vers 50 % pour éviter les conclusions sur 2 games. Ensuite, Claude
         (IA d&apos;Anthropic) explique ce résultat en langage clair, sans le modifier.
       </p>
       {m.eval ? (
         <p>
           Précision mesurée honnêtement sur les {m.eval.holdoutGames} games les plus récentes (jamais vues à
-          l&apos;entraînement) : {(m.eval.accuracy * 100).toFixed(1)} % de bons pronostics. Pour comparaison, le side
-          bleu gagne {((PRO.blueSide.w / PRO.blueSide.g) * 100).toFixed(1)} % des games pro : la draft seule ajoute peu
-          d&apos;information, le pourcentage indique surtout quelle draft est la plus confortable.
+          l&apos;entraînement) : {(m.eval.accuracy * 100).toFixed(1)} % de bons pronostics (50 % = hasard). La draft seule
+          prédit peu le vainqueur : le pourcentage indique surtout quelle draft est la plus confortable.
         </p>
       ) : (
         <p>Pas encore assez de games chargées pour mesurer la précision du modèle.</p>

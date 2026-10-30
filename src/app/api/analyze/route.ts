@@ -22,12 +22,17 @@ function limited(ip: string) {
   return recent.length > 10;
 }
 
-const SYSTEM = `Tu es un analyste esport League of Legends (niveau caster pro). On te donne une draft terminée et le résultat d'un modèle statistique entraîné sur les games pro récentes.
-Règles :
-- Ne recalcule pas et ne contredis pas la probabilité : explique-la.
-- Écris en français, clair, concret, sans jargon inutile. Phrases courtes.
-- Base-toi sur les facteurs chiffrés fournis et sur ta connaissance des champions (kits, power spikes, synergies). Signale quand un facteur repose sur peu de données.
-- 3 à 5 raisons, triées par importance. winConditions : 2-3 par équipe. keyLane.role : TOP, JUNGLE, MID, BOT ou SUPPORT.`;
+const SYSTEM = `Tu es un caster League of Legends qui explique une draft à un joueur moyen. On te donne une draft terminée et le résultat d'un modèle statistique entraîné sur les games pro récentes. Le modèle juge uniquement les drafts : le side (bleu/rouge) n'entre pas en compte, n'en parle pas.
+Règles d'écriture :
+- Français simple, phrases courtes, tutoiement interdit, pas de jargon statistique (pas de "logit", "points", "modèle", "facteur").
+- Ne recalcule pas et ne contredis pas la probabilité : explique pourquoi elle est ce qu'elle est.
+- Cite les champions par leur nom et dis concrètement ce qu'ils font (engage, poke, split push, scaling...).
+- Appuie-toi sur les chiffres fournis (détails) quand ils sont parlants ; si un face-à-face a peu de données, dis-le en une phrase ou ignore-le.
+- summary : 1 à 2 phrases, qui gagne et la raison principale.
+- reasons : 3 à 4 raisons triées par importance. title : 6 mots maximum. detail : 1 à 2 phrases. side = l'équipe que la raison avantage.
+- winConditions : 2 ou 3 phrases courtes par équipe, en commençant par un verbe ("Grouper autour de...", "Jouer le split push...").
+- keyLane.role : TOP, JUNGLE, MID, BOT ou SUPPORT ; why : 1 phrase.
+- upset : 1 phrase sur ce qui pourrait renverser la game.`;
 
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
@@ -48,7 +53,8 @@ export async function POST(req: Request) {
       blue: ROLES.map((r, i) => `${r}: ${champName(blue[i])}`),
       red: ROLES.map((r, i) => `${r}: ${champName(red[i])}`),
       probabiliteVictoireBlue: `${(pred.blueWin * 100).toFixed(1)} %`,
-      facteurs: pred.factors.map((f) => ({ facteur: f.label, pointsPourBlue: +factorPoints(pred, f).toFixed(2), peuDeDonnees: f.lowData })),
+      // pourcentPourBlue: how much this factor moves blue's win chance (negative = helps red).
+      facteurs: pred.factors.map((f) => ({ facteur: f.label, detail: f.detail, pourcentPourBlue: +factorPoints(pred, f).toFixed(1), peuDeDonnees: f.lowData })),
       donnees: { games: PRO.meta.games, patchs: PRO.meta.patches, ligues: PRO.meta.leagues.length },
     };
     try {

@@ -252,7 +252,7 @@ async function main() {
   if (games.length >= 200) {
     const train = buildStats(games.slice(0, cut), base);
     const w = fit(samples(train, games.slice(0, cut), true));
-    evalResult = evaluate(w, samples(train, games.slice(cut), false));
+    evalResult = evaluate({ ...w, bias: 0 }, samples(train, games.slice(cut), false)); // judged like the site: drafts only
     console.log(`Holdout ${evalResult.holdoutGames} games : précision ${(evalResult.accuracy * 100).toFixed(1)} %, log loss ${evalResult.logLoss.toFixed(4)} (base ${evalResult.baselineLogLoss.toFixed(4)})`);
   }
 
