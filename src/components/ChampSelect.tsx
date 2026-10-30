@@ -45,6 +45,10 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
   const remaining = Math.max(0, (draft.deadline - now) / 1000);
   const left = Math.ceil(remaining);
   const selected = step ? draft.hover[step.side] : null;
+  const isBan = step?.type === "ban";
+  // "Aucun" tile picked for this ban step (a null hover can't tell "nothing chosen" from "no ban").
+  const [noneAt, setNoneAt] = useState(-1);
+  const noneSel = isBan && myTurn && noneAt === draft.step;
 
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -180,11 +184,11 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
               </div>
               <div className="h-[3px] bg-line/80 mt-2 overflow-hidden">
                 {running && (
+                  // Width follows the real remaining time; the 200 ms linear transition smooths the 200 ms ticks.
                   <div
-                    key={draft.deadline}
                     suppressHydrationWarning
-                    className={`h-full anim-drain ${remaining <= 10 ? "bg-red-side" : "bg-gradient-to-r from-gold-dark via-gold to-gold-dark"}`}
-                    style={{ animationDuration: `${total}s`, animationDelay: `${-(total - remaining)}s` }}
+                    className={`h-full origin-center transition-transform duration-200 ease-linear ${remaining <= 10 ? "bg-red-side" : "bg-gradient-to-r from-gold-dark via-gold to-gold-dark"}`}
+                    style={{ transform: `scaleX(${Math.min(1, remaining / total)})` }}
                   />
                 )}
               </div>
@@ -238,6 +242,26 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
 
                   <div className="flex-1 min-h-0 max-h-[52vh] lg:max-h-none overflow-y-auto fade-edges px-2 sm:px-3 py-3">
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(58px,1fr))] xl:grid-cols-[repeat(auto-fill,minmax(68px,1fr))] gap-x-2 gap-y-3">
+                      {isBan && (
+                        <button
+                          type="button"
+                          disabled={!myTurn}
+                          onClick={() => {
+                            setNoneAt(draft.step);
+                            onHover(step.side, null);
+                          }}
+                          aria-label="Aucun ban"
+                          className="group flex flex-col items-center gap-1 disabled:cursor-not-allowed"
+                        >
+                          <span className={`relative flex items-center justify-center w-full aspect-square border bg-night transition-[transform,border-color] duration-150 ${noneSel ? "border-red-side ring-2 ring-red-side scale-105" : "border-gold-dark/50 group-enabled:group-hover:border-gold-light group-enabled:group-hover:scale-105"}`}>
+                            <svg viewBox="0 0 24 24" aria-hidden className="w-1/2 text-mute">
+                              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+                              <path d="M5.6 18.4 18.4 5.6" stroke="currentColor" strokeWidth="2" />
+                            </svg>
+                          </span>
+                          <span className={`text-[10px] leading-tight ${noneSel ? "text-red-side" : "text-text"}`}>Aucun</span>
+                        </button>
+                      )}
                       {list.map((id) => {
                         const free = isAvailable(draft, id);
                         const isSel = selected === id;
@@ -246,7 +270,10 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                             key={id}
                             type="button"
                             disabled={!free || !myTurn}
-                            onClick={() => step && onHover(step.side, id)}
+                            onClick={() => {
+                              setNoneAt(-1);
+                              if (step) onHover(step.side, id);
+                            }}
                             title={champName(id)}
                             className="group flex flex-col items-center gap-1 disabled:cursor-not-allowed"
                           >
@@ -271,19 +298,21 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                         <>
                           <span className="font-display text-gold-light">{champName(selected)}</span> · présence {pct(stats.presence)} · pick {pct(stats.pickRate)} · ban {pct(stats.banRate)} · winrate {pct(stats.winrate)}
                         </>
+                      ) : noneSel ? (
+                        <span className="text-text">Aucun champion banni</span>
                       ) : (
                         <span className="text-mute">{myTurn ? "Sélectionne un champion" : "En attente..."}</span>
                       )}
                     </div>
-                    {myTurn && step?.type === "ban" && (
-                      <button type="button" className="text-xs text-mute underline hover:text-gold-light" onClick={() => onLock(step.side, null)}>
-                        Ne rien bannir
-                      </button>
-                    )}
                     <div className="relative">
-                      {myTurn && selected && <div aria-hidden className="lock-glow absolute -inset-2 bg-gold/40 blur-md" />}
-                      <button type="button" className="btn-lock relative px-12 sm:px-16 py-2.5 text-sm" disabled={!myTurn || !selected} onClick={() => step && onLock(step.side, selected)}>
-                        {step?.type === "ban" ? "Bannir" : "Lock in"}
+                      {myTurn && (selected || noneSel) && <div aria-hidden className={`lock-glow absolute -inset-2 blur-md ${isBan ? "bg-red-side/40" : "bg-gold/40"}`} />}
+                      <button
+                        type="button"
+                        className={`btn-lock relative px-12 sm:px-16 py-2.5 text-sm ${isBan ? "ban" : ""}`}
+                        disabled={!myTurn || !(selected || noneSel)}
+                        onClick={() => step && onLock(step.side, noneSel ? null : selected)}
+                      >
+                        {isBan ? "Ban" : "Lock in"}
                       </button>
                     </div>
                   </div>
