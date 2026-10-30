@@ -119,6 +119,29 @@ a:focus-visible {
   0%, 100% { opacity: 0.25; }
   50% { opacity: 0.8; }
 }
+/* Ban shatter: splash appears, turns red/grey, then the two halves split apart along a diagonal. */
+@keyframes shatter-a {
+  0% { opacity: 0; filter: none; transform: none; }
+  15% { opacity: 1; filter: none; }
+  40% { opacity: 1; filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(3) brightness(0.6); transform: none; }
+  100% { opacity: 0; filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(3) brightness(0.4); transform: translate(-7%, 5%) rotate(-5deg); }
+}
+@keyframes shatter-b {
+  0% { opacity: 0; filter: none; transform: none; }
+  15% { opacity: 1; filter: none; }
+  40% { opacity: 1; filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(3) brightness(0.6); transform: none; }
+  100% { opacity: 0; filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(3) brightness(0.4); transform: translate(7%, -5%) rotate(5deg); }
+}
+@keyframes shatter-label {
+  0% { opacity: 0; transform: scale(1.3); }
+  25% { opacity: 1; transform: scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.shatter-a { clip-path: polygon(0 0, 56% 0, 44% 100%, 0 100%); animation: shatter-a 1.8s cubic-bezier(0.5, 0, 0.3, 1) forwards; }
+.shatter-b { clip-path: polygon(56% 0, 100% 0, 100% 100%, 44% 100%); animation: shatter-b 1.8s cubic-bezier(0.5, 0, 0.3, 1) forwards; }
+.shatter-label { animation: shatter-label 1.8s ease-out forwards; text-shadow: 0 2px 16px #000; }
+
 @keyframes flash {
   0% { opacity: 0; }
   20% { opacity: 0.9; }
@@ -163,6 +186,12 @@ a:focus-visible {
   .lock-glow,
   .anim-beat {
     animation: none;
+  }
+  .shatter-a,
+  .shatter-b,
+  .shatter-label {
+    animation: none;
+    opacity: 0;
   }
   .anim-splash,
   .anim-rise,

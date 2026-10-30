@@ -4,9 +4,9 @@ import Link from "next/link";
 import { LayoutGroup, motion, MotionConfig } from "motion/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import RoleIcon from "@/components/RoleIcon";
-import { ACTION_SECONDS, ROLE_SWAP_SECONDS, ROLES, type Role, type Side } from "@/lib/draft/config";
+import { ACTION_SECONDS, DRAFT_ORDER, ROLE_SWAP_SECONDS, ROLES, type Role, type Side } from "@/lib/draft/config";
 import { currentStep, isAvailable, type DraftState } from "@/lib/draft/machine";
-import { CHAMPION_IDS, champImg, champName, champStats, mapImg, ROLE_MAP, splashImg } from "@/lib/data";
+import { CHAMPION_IDS, champImg, champName, fullSplashImg, mapImg, ROLE_MAP, splashImg } from "@/lib/data";
 
 type Props = {
   draft: DraftState;
@@ -20,7 +20,6 @@ type Props = {
   onSwapReady: (side: Side) => void;
 };
 
-const pct = (x: number | null) => (x === null ? "—" : `${(x * 100).toFixed(1)} %`);
 const SIDE_COLOR = { blue: "bg-blue-side", red: "bg-red-side" };
 
 function useNow(offset: number) {
@@ -49,6 +48,15 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
   // "Aucun" tile picked for this ban step (a null hover can't tell "nothing chosen" from "no ban").
   const [noneAt, setNoneAt] = useState(-1);
   const noneSel = isBan && myTurn && noneAt === draft.step;
+  // Like the client: when it's not your turn the grid folds away and the stage shows the enemy's hover.
+  // peekAt reopens it for the current step only.
+  const [peekAt, setPeekAt] = useState(-1);
+  const canFold = draft.phase === "draft" && !myTurn;
+  const folded = canFold && peekAt !== draft.step;
+  // Last action was a ban of a real champion: play the shatter animation (keyed by ban count).
+  const last = DRAFT_ORDER[draft.step - 1];
+  const lastBan = draft.phase === "draft" && last?.type === "ban" ? draft.bans[last.side].at(-1) : null;
+  const banCount = draft.bans.blue.length + draft.bans.red.length;
 
   const list = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -80,7 +88,7 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
         return (
           <div
             key={i}
-            className={`relative size-7 sm:size-9 xl:size-11 overflow-hidden border ${active ? "border-gold active-slot" : "border-gold-dark/70"} bg-night/80`}
+            className={`relative size-9 sm:size-12 xl:size-16 overflow-hidden border ${active ? "border-gold active-slot" : "border-gold-dark/70"} bg-night/80`}
             title={done ? (b ? `${champName(b)} (banni)` : "Pas de ban") : undefined}
           >
             {shown && <img key={shown} src={champImg(shown)} alt={champName(shown)} className={`size-full anim-fade ${done ? "grayscale brightness-75" : "opacity-60"}`} />}
@@ -163,8 +171,6 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
     );
   };
 
-  const stats = selected ? champStats(selected) : null;
-
   return (
     <MotionConfig reducedMotion="user" transition={{ type: "spring", stiffness: 380, damping: 34 }}>
       <LayoutGroup>
@@ -199,8 +205,54 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
           <div className="relative grid grid-cols-2 lg:grid-cols-[minmax(220px,22%)_1fr_minmax(220px,22%)] gap-2 sm:gap-4 lg:flex-1 lg:min-h-0">
             <div className="order-1 min-h-0">{teamColumn("blue")}</div>
 
-            <section className="order-3 lg:order-2 col-span-2 lg:col-span-1 flex flex-col min-h-0 border border-gold-dark/50 bg-night/55 backdrop-blur-[2px]" aria-label="Champions">
-              {draft.phase === "swap" ? (
+            <section
+              className={`relative order-3 lg:order-2 col-span-2 lg:col-span-1 flex flex-col min-h-0 transition-colors duration-300 ${folded ? "min-h-72 lg:min-h-0 border border-transparent" : "border border-gold-dark/50 bg-night/55 backdrop-blur-[2px]"}`}
+              aria-label="Champions"
+            >
+              {canFold && (
+                <button
+                  type="button"
+                  onClick={() => setPeekAt(folded ? draft.step : -1)}
+                  aria-expanded={!folded}
+                  aria-label={folded ? "Afficher les champions" : "Masquer les champions"}
+                  className="absolute -top-px left-1/2 -translate-x-1/2 z-10 px-4 py-0.5 border border-t-0 border-gold-dark bg-night text-gold hover:text-gold-light"
+                >
+                  <svg viewBox="0 0 24 12" aria-hidden className={`w-5 h-2.5 transition-transform ${folded ? "" : "rotate-180"}`}>
+                    <path d="M2 2l10 8 10-8z" fill="currentColor" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Ban shatter: the banned champion turns red/grey and breaks in two. */}
+              {lastBan && (
+                <div key={banCount} aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden [mask-image:radial-gradient(ellipse_at_center,#000_40%,transparent_75%)]">
+                  <img src={fullSplashImg(lastBan)} alt="" className="shatter-a absolute inset-0 size-full object-cover" />
+                  <img src={fullSplashImg(lastBan)} alt="" className="shatter-b absolute inset-0 size-full object-cover" />
+                  <span className="shatter-label absolute inset-x-0 bottom-[12%] text-center font-display text-3xl sm:text-5xl tracking-widest text-red-side">
+                    {champName(lastBan)}
+                  </span>
+                </div>
+              )}
+
+              {folded ? (
+                <div className="relative flex-1 flex flex-col items-center justify-end overflow-hidden pb-6">
+                  {selected ? (
+                    <>
+                      <img
+                        key={selected}
+                        src={fullSplashImg(selected)}
+                        alt=""
+                        className="absolute inset-0 size-full object-cover anim-fade [mask-image:radial-gradient(ellipse_at_center,#000_35%,transparent_72%)]"
+                      />
+                      <p key={`n-${selected}`} className="relative font-display text-3xl sm:text-5xl tracking-[0.12em] text-gold-light anim-rise [text-shadow:0_2px_12px_#000]">
+                        {champName(selected).toUpperCase()}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="relative m-auto font-display text-lg text-mute tracking-widest">{step && `${names[step.side]} réfléchit...`}</p>
+                  )}
+                </div>
+              ) : draft.phase === "swap" ? (
                 <div className="m-auto text-center p-6 max-w-md anim-rise">
                   <p className="font-display text-gold text-xl mb-2">Échange des rôles</p>
                   <p className="text-text text-sm">
@@ -293,17 +345,6 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                   </div>
 
                   <div className="sticky bottom-0 lg:static flex flex-wrap items-center justify-center gap-x-4 gap-y-2 p-2 sm:p-3 border-t border-gold-dark/40 bg-night/90 lg:bg-transparent">
-                    <div className="text-[11px] text-text min-h-4 w-full text-center" aria-live="polite">
-                      {selected && stats ? (
-                        <>
-                          <span className="font-display text-gold-light">{champName(selected)}</span> · présence {pct(stats.presence)} · pick {pct(stats.pickRate)} · ban {pct(stats.banRate)} · winrate {pct(stats.winrate)}
-                        </>
-                      ) : noneSel ? (
-                        <span className="text-text">Aucun champion banni</span>
-                      ) : (
-                        <span className="text-mute">{myTurn ? "Sélectionne un champion" : "En attente..."}</span>
-                      )}
-                    </div>
                     <div className="relative">
                       {myTurn && (selected || noneSel) && <div aria-hidden className={`lock-glow absolute -inset-2 blur-md ${isBan ? "bg-red-side/40" : "bg-gold/40"}`} />}
                       <button
