@@ -42,7 +42,7 @@ export default function OnlineGame({ code }: { code: string }) {
   if (!name)
     return (
       <form
-        className="m-auto gold-frame bg-panel/70 p-6 flex flex-col gap-3 w-full max-w-sm"
+        className="m-auto card p-6 flex flex-col gap-3 w-full max-w-sm"
         onSubmit={(e) => {
           e.preventDefault();
           const n = draftName.trim();
@@ -53,10 +53,17 @@ export default function OnlineGame({ code }: { code: string }) {
           setName(n);
         }}
       >
-        <h1 className="font-display text-xl text-gold">Partie {code}</h1>
-        <label htmlFor="pseudo" className="text-sm text-text">Choisis ton pseudo pour rejoindre</label>
-        <input id="pseudo" autoFocus maxLength={20} className="bg-night border border-gold-dark px-2 py-2" value={draftName} onChange={(e) => setDraftName(e.target.value)} />
-        <button className="btn-gold py-2" disabled={!draftName.trim()}>Rejoindre</button>
+        <h1 className="text-xl font-semibold">Partie <span className="font-mono tracking-widest">{code}</span></h1>
+        <label htmlFor="pseudo" className="text-sm text-muted">Choisis ton pseudo pour rejoindre</label>
+        <input
+          id="pseudo"
+          autoFocus
+          maxLength={20}
+          className="rounded-xl bg-canvas border border-edge px-3 py-2.5 text-sm focus:border-accent outline-none"
+          value={draftName}
+          onChange={(e) => setDraftName(e.target.value)}
+        />
+        <button className="btn primary" disabled={!draftName.trim()}>Rejoindre</button>
       </form>
     );
   return <Room code={code} name={name} />;
@@ -123,10 +130,10 @@ function Room({ code, name }: { code: string; name: string }) {
         {error ? (
           <>
             <p className="text-red-side">{error}</p>
-            <Link href="/" className="btn-gold px-6 py-2">Retour à l&apos;accueil</Link>
+            <Link href="/" className="btn">Retour à l&apos;accueil</Link>
           </>
         ) : (
-          <p className="font-display text-gold animate-pulse" role="status">Connexion à la partie {code}...</p>
+          <p className="text-muted animate-pulse" role="status">Connexion à la partie {code}...</p>
         )}
       </div>
     );
@@ -135,13 +142,13 @@ function Room({ code, name }: { code: string; name: string }) {
   const opp: Side | null = me ? (me === "blue" ? "red" : "blue") : null;
   const status = (
     <span className="flex items-center gap-3">
-      <span className="flex items-center gap-1" title={online ? "Connecté" : "Reconnexion..."}>
-        <span aria-hidden className={`size-2 rounded-full ${online ? "bg-green-500" : "bg-orange-400 animate-pulse"}`} />
+      <span className="flex items-center gap-1.5" title={online ? "Connecté" : "Reconnexion..."}>
+        <span aria-hidden className={`size-1.5 rounded-full ${online ? "bg-ok" : "bg-orange-400 animate-pulse"}`} />
         {online ? "En ligne" : "Reconnexion..."}
       </span>
       {opp && room.players[opp] && !room.players[opp]!.connected && <span className="text-red-side">Adversaire déconnecté</span>}
-      {!me && <span className="text-gold">Mode spectateur</span>}
-      {room.spectators > 0 && <span className="text-mute">{room.spectators} spectateur{room.spectators > 1 ? "s" : ""}</span>}
+      {!me && <span className="text-accent">Spectateur</span>}
+      {room.spectators > 0 && <span>{room.spectators} spectateur{room.spectators > 1 ? "s" : ""}</span>}
     </span>
   );
   const errorBar = error && <p className="text-center text-red-side text-sm" role="alert">{error}</p>;
@@ -149,26 +156,26 @@ function Room({ code, name }: { code: string; name: string }) {
   if (room.phase === "lobby") {
     const share = typeof navigator !== "undefined" && "share" in navigator;
     return (
-      <div className="max-w-2xl w-full mx-auto px-4 py-8 flex flex-col gap-6">
-        <section className="gold-frame bg-panel/70 p-5 text-center flex flex-col gap-3">
-          <h1 className="text-sm text-text">Invite ton ami avec ce code</h1>
-          <div className="font-display text-5xl sm:text-6xl tracking-[0.3em] text-gold select-all" aria-label={code}>
+      <div className="max-w-xl w-full mx-auto px-4 py-12 flex flex-col gap-5">
+        <section className="card p-6 text-center flex flex-col gap-4">
+          <h1 className="text-sm text-muted">Invite ton ami avec ce code</h1>
+          <div className="font-mono text-4xl sm:text-5xl font-semibold tracking-[0.35em] select-all pl-[0.35em]" aria-label={code}>
             {[...code].map((ch, i) => (
-              <span key={i} aria-hidden className="inline-block anim-pop" style={{ animationDelay: `${i * 0.07}s` }}>
+              <span key={i} aria-hidden className="inline-block anim-pop" style={{ animationDelay: `${i * 0.05}s` }}>
                 {ch}
               </span>
             ))}
           </div>
           <div className="flex flex-wrap justify-center gap-2">
-            <button className="btn-gold px-4 py-2 text-xs" onClick={() => copy(code, "code")}>{copied === "code" ? "Copié ✓" : "Copier le code"}</button>
-            <button className="btn-gold px-4 py-2 text-xs" onClick={() => copy(link, "link")}>{copied === "link" ? "Copié ✓" : "Copier le lien"}</button>
+            <button className="btn" onClick={() => copy(code, "code")}>{copied === "code" ? "Copié ✓" : "Copier le code"}</button>
+            <button className="btn" onClick={() => copy(link, "link")}>{copied === "link" ? "Copié ✓" : "Copier le lien"}</button>
             {share && (
-              <button className="btn-gold px-4 py-2 text-xs" onClick={() => navigator.share({ title: "Draftdiff", text: `Viens drafter contre moi ! Code : ${code}`, url: link }).catch(() => {})}>
+              <button className="btn" onClick={() => navigator.share({ title: "Draftdiff", text: `Viens drafter contre moi ! Code : ${code}`, url: link }).catch(() => {})}>
                 Partager
               </button>
             )}
           </div>
-          <p className="text-xs text-mute break-all">{link}</p>
+          <p className="text-xs text-faint break-all">{link}</p>
         </section>
 
         <SeriesBar series={room.series} names={names} extra={status} />
@@ -177,22 +184,29 @@ function Room({ code, name }: { code: string; name: string }) {
           {(["blue", "red"] as const).map((s) => {
             const p = room.players[s];
             return (
-              <div key={s} className={`gold-frame bg-panel/70 p-4 border-t-4 ${s === "blue" ? "border-t-blue-side" : "border-t-red-side"}`}>
-                <div className={`text-xs ${s === "blue" ? "text-blue-side" : "text-red-side"}`}>{s === "blue" ? "BLUE SIDE" : "RED SIDE"}{room.host === s && " · hôte"}</div>
-                <div key={p?.name ?? "empty"} className={`font-display text-lg ${p ? "anim-pop" : ""}`}>{p ? p.name : <span className="text-mute">En attente...</span>}{me === s && " (toi)"}</div>
-                <div className="text-sm">{p && (p.ready ? <span className="text-green-400">Prêt ✓</span> : <span className="text-mute">Pas prêt</span>)}</div>
+              <div key={s} className="card p-4 flex flex-col gap-1">
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <span aria-hidden className={`size-2 rounded-full ${s === "blue" ? "bg-blue-side" : "bg-red-side"}`} />
+                  {s === "blue" ? "Side bleu" : "Side rouge"}
+                  {room.host === s && <span className="text-faint">· hôte</span>}
+                </div>
+                <div key={p?.name ?? "empty"} className={`text-lg font-semibold truncate ${p ? "anim-pop" : "text-faint font-normal"}`}>
+                  {p ? p.name : "En attente..."}
+                  {me === s && <span className="text-muted font-normal"> (toi)</span>}
+                </div>
+                <div className="text-sm">{p && (p.ready ? <span className="text-ok">Prêt ✓</span> : <span className="text-faint">Pas prêt</span>)}</div>
               </div>
             );
           })}
         </section>
 
         {me && (
-          <div className="flex flex-wrap justify-center gap-3">
-            <button className="btn-gold px-8 py-3" disabled={room.players[me]?.ready} onClick={() => send({ t: "ready" })}>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button className="btn primary px-8" disabled={room.players[me]?.ready} onClick={() => send({ t: "ready" })}>
               {room.players[me]?.ready ? "En attente de l'adversaire" : "Prêt"}
             </button>
             {me === room.host && (
-              <button className="btn-gold px-4 py-3 text-xs" onClick={() => send({ t: "swapSides" })}>Échanger les sides</button>
+              <button className="btn" onClick={() => send({ t: "swapSides" })}>Échanger les sides</button>
             )}
           </div>
         )}
@@ -219,14 +233,14 @@ function Room({ code, name }: { code: string; name: string }) {
             room.result && (
               <>
                 {last && room.series.format > 1 && (
-                  <p className="w-full text-center font-display text-gold">Résultat simulé de la game : victoire {names[last.winner]}</p>
+                  <p className="w-full text-center text-sm text-muted">Résultat simulé de la game : victoire <span className="text-fg font-medium">{names[last.winner]}</span></p>
                 )}
                 {me && (
-                  <button className="btn-gold px-6 py-2" onClick={() => send({ t: "next" })}>
+                  <button className="btn primary" onClick={() => send({ t: "next" })}>
                     {isOver(room.series) ? "Nouvelle série" : "Game suivante"}
                   </button>
                 )}
-                <button className="btn-gold px-6 py-2" onClick={() => copy(location.origin + resultUrl(d!.picks.blue, d!.picks.red, names), "result")}>
+                <button className="btn" onClick={() => copy(location.origin + resultUrl(d!.picks.blue, d!.picks.red, names), "result")}>
                   {copied === "result" ? "Lien copié ✓" : "Copier le lien du résultat"}
                 </button>
               </>
@@ -262,8 +276,8 @@ function Countdown({ startAt, offset }: { startAt: number; offset: number }) {
   }, [offset]);
   return (
     <div className="m-auto text-center">
-      <p className="text-text">La draft commence dans</p>
-      <p className="font-display text-8xl text-gold" aria-live="polite">{Math.max(1, Math.ceil((startAt - now) / 1000))}</p>
+      <p className="text-muted">La draft commence dans</p>
+      <p className="text-8xl font-semibold tabular-nums" aria-live="polite">{Math.max(1, Math.ceil((startAt - now) / 1000))}</p>
     </div>
   );
 }

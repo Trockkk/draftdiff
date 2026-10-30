@@ -11,5 +11,3 @@ export const champImg = (id: string) => `https://ddragon.leagueoflegends.com/cdn
 export const champName = (id: string | null | undefined) => (id ? (PRO.champions[id]?.name ?? id) : "");
 
 export const fullSplashImg = (id: string) => `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${id}_0.jpg`;
-export const splashImg = (id: string) => `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${id}_0.jpg`;
-export const mapImg = () => `https://ddragon.leagueoflegends.com/cdn/${PRO.meta.ddragonVersion}/img/map/map11.png`;

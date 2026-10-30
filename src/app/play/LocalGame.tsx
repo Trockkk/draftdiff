@@ -21,7 +21,7 @@ export default function LocalGame() {
   const ai: Side | null = vsAi ? (human === "blue" ? "red" : "blue") : null;
   const names: Record<Side, string> = vsAi
     ? { blue: human === "blue" ? "Toi" : "IA", red: human === "red" ? "Toi" : "IA" }
-    : { blue: "Blue", red: "Red" };
+    : { blue: "Bleu", red: "Rouge" };
 
   const [series, setSeries] = useState<Series>(() => newSeries((Number(q.get("bo")) || 1) as SeriesFormat, q.get("fearless") === "1"));
   const [draft, setDraft] = useState<DraftState>(() => createDraft(Date.now()));
@@ -105,17 +105,17 @@ export default function LocalGame() {
             result && (
               <>
                 {last && series.format > 1 && (
-                  <p className="w-full text-center font-display text-gold">
+                  <p className="w-full text-center text-sm text-muted">
                     Résultat simulé de la game : victoire {names[last.winner]}
                   </p>
                 )}
                 {!isOver(series) ? (
-                  <button className="btn-gold px-6 py-2" onClick={nextGame}>Game suivante</button>
+                  <button className="btn primary" onClick={nextGame}>Game suivante</button>
                 ) : (
-                  <button className="btn-gold px-6 py-2" onClick={restart}>Nouvelle série</button>
+                  <button className="btn primary" onClick={restart}>Nouvelle série</button>
                 )}
                 <button
-                  className="btn-gold px-6 py-2"
+                  className="btn"
                   onClick={() => {
                     navigator.clipboard.writeText(location.origin + resultUrl(draft.picks.blue, draft.picks.red, names));
                     setCopied(true);
@@ -123,7 +123,7 @@ export default function LocalGame() {
                 >
                   {copied ? "Lien copié ✓" : "Copier le lien du résultat"}
                 </button>
-                <Link href="/" className="btn-gold px-6 py-2">Accueil</Link>
+                <Link href="/" className="btn">Accueil</Link>
               </>
             )
           }
@@ -137,7 +137,7 @@ export default function LocalGame() {
       draft={draft}
       controls={ai ? [human] : ["blue", "red"]}
       names={names}
-      info={<SeriesBar series={series} names={names} extra={<button className="underline text-mute" onClick={restart}>Recommencer</button>} />}
+      info={<SeriesBar series={series} names={names} extra={<button className="underline underline-offset-2 hover:text-fg" onClick={restart}>Recommencer</button>} />}
       onHover={(side, c) => apply((d) => hover(d, side, c))}
       onLock={(side, c) => apply((d) => lock(d, side, c, Date.now()))}
       onSwap={(side, i, j) => apply((d) => swapRoles(d, side, i, j))}

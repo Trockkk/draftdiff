@@ -61,7 +61,7 @@ export function features(data: ProData, blue: TeamPicks, red: TeamPicks, own?: {
     factors.push({
       kind: "champ",
       role,
-      label: `${role} : forme de ${name(data, b)} et ${name(data, r)}`,
+      label: `${roleName(role)} : forme de ${name(data, b)} et ${name(data, r)}`,
       detail: `En pro à ce poste : ${name(data, b)} ${pctOf(data.champions[b]?.roles[role])}, ${name(data, r)} ${pctOf(data.champions[r]?.roles[role])}.`,
       raw: champ,
       lowData: cb.g < MIN_GAMES || cr.g < MIN_GAMES,
@@ -76,7 +76,7 @@ export function features(data: ProData, blue: TeamPicks, red: TeamPicks, own?: {
     factors.push({
       kind: "matchup",
       role,
-      label: `${role} : ${name(data, b)} contre ${name(data, r)}`,
+      label: `${roleName(role)} : ${name(data, b)} contre ${name(data, r)}`,
       detail:
         m.g < MIN_GAMES
           ? `Face-à-face presque jamais joué en pro (${games} game${games > 1 ? "s" : ""}) : pas de conclusion.`
@@ -115,6 +115,7 @@ export function features(data: ProData, blue: TeamPicks, red: TeamPicks, own?: {
 }
 
 const name = (data: ProData, id: string) => data.champions[id]?.name ?? id;
+const roleName = (r: Role) => r.charAt(0) + r.slice(1).toLowerCase(); // "JUNGLE" -> "Jungle"
 
 export function linear(w: Weights, s: { champ: number; matchup: number; synergy: number; comp: number }) {
   return w.bias + w.champ * s.champ + w.matchup * s.matchup + w.synergy * s.synergy + w.comp * s.comp;

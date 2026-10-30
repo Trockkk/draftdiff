@@ -21,7 +21,7 @@ function SharedResult() {
   }, [key]);
 
   if (error) return <p className="text-red-side text-center p-8">{error}</p>;
-  return <ResultView blue={blue} red={red} names={names} result={result} actions={<Link href="/" className="btn-gold px-6 py-2">Faire ma draft</Link>} />;
+  return <ResultView blue={blue} red={red} names={names} result={result} actions={<Link href="/" className="btn primary">Faire ma draft</Link>} />;
 }
 
 export default function ResultPage() {

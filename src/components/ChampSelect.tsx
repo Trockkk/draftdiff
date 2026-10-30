@@ -1,12 +1,12 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- Data Dragon images, no optimisation needed */
-import Link from "next/link";
 import { LayoutGroup, motion, MotionConfig } from "motion/react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import Logo from "@/components/Logo";
 import RoleIcon from "@/components/RoleIcon";
 import { ACTION_SECONDS, DRAFT_ORDER, ROLE_SWAP_SECONDS, ROLES, type Role, type Side } from "@/lib/draft/config";
 import { currentStep, isAvailable, type DraftState } from "@/lib/draft/machine";
-import { CHAMPION_IDS, champImg, champName, fullSplashImg, mapImg, ROLE_MAP, splashImg } from "@/lib/data";
+import { CHAMPION_IDS, champImg, champName, fullSplashImg, ROLE_MAP } from "@/lib/data";
 
 type Props = {
   draft: DraftState;
@@ -20,7 +20,9 @@ type Props = {
   onSwapReady: (side: Side) => void;
 };
 
-const SIDE_COLOR = { blue: "bg-blue-side", red: "bg-red-side" };
+const TEXT = { blue: "text-blue-side", red: "text-red-side" };
+const BG = { blue: "bg-blue-side", red: "bg-red-side" };
+const BORDER = { blue: "border-blue-side/70", red: "border-red-side/70" };
 
 function useNow(offset: number) {
   const [now, setNow] = useState(() => Date.now() + offset);
@@ -48,7 +50,7 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
   // "Aucun" tile picked for this ban step (a null hover can't tell "nothing chosen" from "no ban").
   const [noneAt, setNoneAt] = useState(-1);
   const noneSel = isBan && myTurn && noneAt === draft.step;
-  // Like the client: when it's not your turn the grid folds away and the stage shows the enemy's hover.
+  // When it's not your turn the grid folds away and the stage shows the other side's hover.
   // peekAt reopens it for the current step only.
   const [peekAt, setPeekAt] = useState(-1);
   const canFold = draft.phase === "draft" && !myTurn;
@@ -65,9 +67,9 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
 
   let title = "Draft terminée";
   if (step) {
-    if (!myTurn) title = `${names[step.side]} ${step.type === "ban" ? "bannit..." : "choisit..."}`;
-    else if (controls.length === 1) title = step.type === "ban" ? "À toi de bannir !" : "À toi de choisir !";
-    else title = `${step.side === "blue" ? "Blue side" : "Red side"} ${step.type === "ban" ? "bannit" : "choisit"}`;
+    if (!myTurn) title = `${names[step.side]} ${step.type === "ban" ? "bannit…" : "choisit…"}`;
+    else if (controls.length === 1) title = step.type === "ban" ? "À toi de bannir" : "À toi de choisir";
+    else title = `${names[step.side]} ${step.type === "ban" ? "bannit" : "choisit"}`;
   } else if (draft.phase === "swap") title = "Échange des rôles";
 
   function clickSlot(side: Side, i: number) {
@@ -78,92 +80,80 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
     } else setSwapPick({ side, i });
   }
 
-  const banRow = (side: Side) => (
-    <div className={`flex gap-1.5 ${side === "red" ? "flex-row-reverse" : ""}`} aria-label={`Bans ${names[side]}`}>
-      {Array.from({ length: 5 }, (_, i) => {
-        const b = draft.bans[side][i];
-        const done = i < draft.bans[side].length;
-        const active = step?.type === "ban" && step.side === side && i === draft.bans[side].length;
-        const shown = b ?? (active ? draft.hover[side] : null);
-        return (
-          <div
-            key={i}
-            className={`relative size-9 sm:size-12 xl:size-16 overflow-hidden border ${active ? "border-gold active-slot" : "border-gold-dark/70"} bg-night/80`}
-            title={done ? (b ? `${champName(b)} (banni)` : "Pas de ban") : undefined}
-          >
-            {shown && <img key={shown} src={champImg(shown)} alt={champName(shown)} className={`size-full anim-fade ${done ? "grayscale brightness-75" : "opacity-60"}`} />}
-            {done && (
-              <span aria-hidden className="absolute inset-0 flex items-center justify-center">
-                <span className="block w-[140%] h-[2px] -rotate-45">
-                  <span className="block size-full bg-red-side anim-slash" />
-                </span>
-              </span>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
+  const teamHeader = (side: Side) => {
+    const red = side === "red";
+    return (
+      <div className={`flex flex-col gap-2 min-w-0 ${red ? "items-end" : ""}`}>
+        <div className={`flex items-center gap-2 text-sm font-semibold min-w-0 ${red ? "flex-row-reverse" : ""}`}>
+          <span aria-hidden className={`size-2 rounded-full shrink-0 ${BG[side]}`} />
+          <span className="truncate">{names[side]}</span>
+        </div>
+        <div className={`flex gap-1.5 ${red ? "flex-row-reverse" : ""}`} aria-label={`Bans ${names[side]}`}>
+          {Array.from({ length: 5 }, (_, i) => {
+            const b = draft.bans[side][i];
+            const done = i < draft.bans[side].length;
+            const active = isBan && step?.side === side && i === draft.bans[side].length;
+            const shown = b ?? (active ? draft.hover[side] : null);
+            return (
+              <div
+                key={i}
+                className={`relative size-8 sm:size-10 xl:size-12 rounded-lg overflow-hidden bg-raised border ${active ? "border-red-side text-red-side active-slot" : "border-edge"}`}
+                title={done ? (b ? `${champName(b)} (banni)` : "Pas de ban") : undefined}
+              >
+                {shown && <img key={shown} src={champImg(shown)} alt={champName(shown)} className={`size-full scale-110 anim-fade ${done ? "grayscale opacity-50" : "opacity-60"}`} />}
+                {done && (
+                  <span aria-hidden className="absolute inset-0 flex items-center justify-center">
+                    <span className="block w-[140%] h-[2px] -rotate-45">
+                      <span className="block size-full bg-red-side anim-slash" />
+                    </span>
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const teamColumn = (side: Side) => {
     const red = side === "red";
     const canSwap = draft.phase === "swap" && controls.includes(side) && !draft.swapReady[side];
     return (
-      <div className="flex flex-col min-h-0 gap-1 lg:h-full">
-        <div className={`font-display text-xs sm:text-sm tracking-[0.2em] px-2 truncate ${red ? "text-red-side text-right" : "text-blue-side"}`}>{names[side]}</div>
-        <div className="flex flex-col gap-1 lg:flex-1 lg:min-h-0">
-          {ROLES.map((r, i) => {
-            const pick = draft.picks[side][i];
-            const active = step?.type === "pick" && step.side === side && i === draft.picks[side].length;
-            const shown = pick ?? (active ? draft.hover[side] : null);
-            const sel = swapPick?.side === side && swapPick.i === i;
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => clickSlot(side, i)}
-                disabled={!canSwap}
-                aria-label={`${r} ${names[side]} : ${pick ? champName(pick) : "vide"}`}
-                className={`group relative flex-1 min-h-14 lg:min-h-0 overflow-hidden flex items-center gap-3 px-3 text-left ${red ? "flex-row-reverse text-right" : ""} ${active ? "bg-gold/10" : "bg-panel/50"} ${sel ? "ring-2 ring-gold ring-inset" : ""} disabled:cursor-default enabled:hover:bg-gold/10 transition-colors`}
+      <div className="flex flex-col min-h-0 gap-2 lg:h-full">
+        {ROLES.map((r, i) => {
+          const pick = draft.picks[side][i];
+          const active = step?.type === "pick" && step.side === side && i === draft.picks[side].length;
+          const shown = pick ?? (active ? draft.hover[side] : null);
+          const sel = swapPick?.side === side && swapPick.i === i;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => clickSlot(side, i)}
+              disabled={!canSwap}
+              aria-label={`${r} ${names[side]} : ${pick ? champName(pick) : "vide"}`}
+              className={`relative flex-1 min-h-14 lg:min-h-0 overflow-hidden flex items-center gap-3 px-3 rounded-xl border bg-surface transition-colors ${red ? "flex-row-reverse text-right" : "text-left"} ${active ? `${BORDER[side]} ${TEXT[side]} active-slot` : "border-edge"} ${sel ? "ring-2 ring-accent" : ""} disabled:cursor-default enabled:hover:border-faint`}
+            >
+              {pick && <span key={`f-${pick}`} aria-hidden className="absolute inset-0 bg-fg/15 anim-flash pointer-events-none" />}
+              <motion.div
+                layoutId={pick ? `pick-${side}-${pick}` : undefined}
+                className="relative shrink-0 size-11 sm:size-12 xl:size-14 rounded-lg overflow-hidden bg-raised"
               >
-                {pick && (
-                  <img
-                    key={pick}
-                    src={splashImg(pick)}
-                    alt=""
-                    style={{ ["--from" as string]: red ? "24px" : "-24px" }}
-                    className={`hidden lg:block absolute inset-0 size-full object-cover object-[50%_18%] anim-splash ${red ? "[mask-image:linear-gradient(to_left,#000_20%,transparent_95%)]" : "[mask-image:linear-gradient(to_right,#000_20%,transparent_95%)]"} opacity-70`}
-                  />
-                )}
-                {pick && <span key={`f-${pick}`} aria-hidden className="absolute inset-0 bg-gradient-to-r from-gold-light/60 to-transparent anim-flash pointer-events-none" />}
-                {active && (
-                  <motion.span
-                    layoutId={`active-${side}`}
-                    aria-hidden
-                    className={`absolute top-0 bottom-0 w-1 ${red ? "right-0" : "left-0"} ${SIDE_COLOR[side]} shadow-[0_0_12px_currentColor]`}
-                  />
-                )}
-                <div className={`relative flex items-center gap-3 min-w-0 ${red ? "flex-row-reverse" : ""}`}>
-                  <motion.div
-                    layoutId={pick ? `pick-${side}-${pick}` : undefined}
-                    className={`relative shrink-0 size-11 sm:size-14 xl:size-16 rounded-full overflow-hidden border-2 ${active ? "border-gold active-slot" : "border-gold-dark"} bg-night`}
-                  >
-                    {shown && <img key={shown} src={champImg(shown)} alt="" className={`size-full scale-110 anim-fade ${pick ? "" : "opacity-50"}`} />}
-                  </motion.div>
-                  <div className="min-w-0 [text-shadow:0_1px_3px_#000,0_0_8px_#000]">
-                    <div className={`flex items-center gap-1 text-[10px] sm:text-[11px] tracking-widest ${red ? "flex-row-reverse" : ""} ${active ? "text-gold" : pick ? "text-gold-light/90" : "text-mute"}`}>
-                      {draft.phase !== "draft" && <RoleIcon role={r} className="size-3.5" />}
-                      {active ? (step?.side === side && controls.includes(side) ? "À TOI" : "CHOISIT...") : draft.phase === "draft" ? `PICK ${i + 1}` : r}
-                    </div>
-                    <div className="font-display text-sm xl:text-base truncate drop-shadow">{pick ? champName(pick) : active && shown ? champName(shown) : ""}</div>
-                  </div>
+                {shown && <img key={shown} src={champImg(shown)} alt="" className={`size-full scale-110 anim-fade ${pick ? "" : "opacity-40"}`} />}
+              </motion.div>
+              <div className="min-w-0">
+                <div className={`flex items-center gap-1.5 text-[11px] font-medium ${red ? "flex-row-reverse" : ""} ${active ? "" : "text-faint"}`}>
+                  {draft.phase !== "draft" && <RoleIcon role={r} className="size-3.5" />}
+                  {active ? (controls.includes(side) ? "À toi" : "Choisit…") : draft.phase === "draft" ? `Pick ${i + 1}` : r.charAt(0) + r.slice(1).toLowerCase()}
                 </div>
-              </button>
-            );
-          })}
-        </div>
+                <div className="text-sm xl:text-base font-semibold text-fg truncate">{pick ? champName(pick) : active && shown ? champName(shown) : ""}</div>
+              </div>
+            </button>
+          );
+        })}
         {draft.phase === "swap" && controls.includes(side) && (
-          <button type="button" className="btn-gold py-2 text-xs mt-1" disabled={draft.swapReady[side]} onClick={() => onSwapReady(side)}>
+          <button type="button" className="btn primary" disabled={draft.swapReady[side]} onClick={() => onSwapReady(side)}>
             {draft.swapReady[side] ? "Prêt ✓" : "Valider les rôles"}
           </button>
         )}
@@ -174,39 +164,39 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
   return (
     <MotionConfig reducedMotion="user" transition={{ type: "spring", stiffness: 380, damping: 34 }}>
       <LayoutGroup>
-        <div className="relative flex flex-col gap-2 sm:gap-3 px-2 sm:px-4 pt-2 sm:pt-3 pb-2 lg:fixed lg:inset-0 lg:z-20 lg:overflow-hidden bg-night lg:bg-[radial-gradient(ellipse_at_50%_35%,rgba(0,90,130,0.35),transparent_60%),linear-gradient(180deg,#010a13,#0a1428)]">
-          {/* Summoner's Rift backdrop behind the champion panel */}
-          <img src={mapImg()} alt="" aria-hidden className="hidden lg:block pointer-events-none absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 h-[78%] aspect-square object-contain opacity-20 blur-[1.5px] saturate-50" />
-          <div aria-hidden className="hidden lg:block pointer-events-none absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 size-[40vh] rounded-full bg-blue-side/10 blur-3xl" />
+        <div className="relative flex flex-col gap-3 sm:gap-4 px-3 sm:px-6 pt-3 sm:pt-5 pb-3 bg-canvas lg:fixed lg:inset-0 lg:z-20 lg:overflow-hidden">
+          {/* faint team-colored glows, nothing else in the background */}
+          <div aria-hidden className="hidden lg:block pointer-events-none absolute -left-40 top-1/3 size-[480px] rounded-full bg-blue-side/[0.06] blur-3xl" />
+          <div aria-hidden className="hidden lg:block pointer-events-none absolute -right-40 top-1/3 size-[480px] rounded-full bg-red-side/[0.06] blur-3xl" />
 
-          <header className="relative grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-            {banRow("blue")}
-            <div className="text-center min-w-0 sm:min-w-56 xl:min-w-80">
-              <div key={title} className="font-display italic text-gold-light text-xs sm:text-xl xl:text-2xl anim-fade truncate" aria-live="polite">
+          <header className="relative grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+            {teamHeader("blue")}
+            <div className="text-center min-w-0 w-28 sm:w-56 xl:w-72">
+              <div key={title} className="text-xs sm:text-sm font-medium text-muted anim-fade truncate" aria-live="polite">
                 {title}
               </div>
-              <div className={`font-display text-4xl sm:text-5xl xl:text-6xl tabular-nums leading-none mt-1 ${left <= 10 && running ? "text-red-side" : "text-gold-light"}`}>
+              <div className={`text-4xl sm:text-5xl font-semibold tabular-nums tracking-tight leading-tight transition-colors ${left <= 10 && running ? "text-red-side" : "text-fg"}`}>
                 <span suppressHydrationWarning className={`inline-block ${left <= 5 && running && left > 0 ? "anim-beat" : ""}`}>{running ? left : "—"}</span>
               </div>
-              <div className="h-[3px] bg-line/80 mt-2 overflow-hidden">
+              <div className="h-1 rounded-full bg-raised mt-1 overflow-hidden">
                 {running && (
                   // Width follows the real remaining time; the 200 ms linear transition smooths the 200 ms ticks.
                   <div
                     suppressHydrationWarning
-                    className={`h-full origin-center transition-transform duration-200 ease-linear ${remaining <= 10 ? "bg-red-side" : "bg-gradient-to-r from-gold-dark via-gold to-gold-dark"}`}
+                    className={`h-full rounded-full origin-center transition-transform duration-200 ease-linear ${remaining <= 10 ? "bg-red-side" : "bg-accent"}`}
                     style={{ transform: `scaleX(${Math.min(1, remaining / total)})` }}
                   />
                 )}
               </div>
             </div>
-            <div className="flex justify-end">{banRow("red")}</div>
+            {teamHeader("red")}
           </header>
 
-          <div className="relative grid grid-cols-2 lg:grid-cols-[minmax(220px,22%)_1fr_minmax(220px,22%)] gap-2 sm:gap-4 lg:flex-1 lg:min-h-0">
+          <div className="relative grid grid-cols-2 lg:grid-cols-[minmax(220px,21%)_1fr_minmax(220px,21%)] gap-2 sm:gap-4 lg:flex-1 lg:min-h-0">
             <div className="order-1 min-h-0">{teamColumn("blue")}</div>
 
             <section
-              className={`relative order-3 lg:order-2 col-span-2 lg:col-span-1 flex flex-col min-h-0 transition-colors duration-300 ${folded ? "min-h-72 lg:min-h-0 border border-transparent" : "border border-gold-dark/50 bg-night/55 backdrop-blur-[2px]"}`}
+              className={`relative order-3 lg:order-2 col-span-2 lg:col-span-1 flex flex-col min-h-0 rounded-2xl overflow-hidden transition-colors duration-300 ${folded ? "min-h-72 lg:min-h-0 bg-surface/40 border border-edge/50" : "card"}`}
               aria-label="Champions"
             >
               {canFold && (
@@ -215,55 +205,58 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                   onClick={() => setPeekAt(folded ? draft.step : -1)}
                   aria-expanded={!folded}
                   aria-label={folded ? "Afficher les champions" : "Masquer les champions"}
-                  className="absolute -top-px left-1/2 -translate-x-1/2 z-10 px-4 py-0.5 border border-t-0 border-gold-dark bg-night text-gold hover:text-gold-light"
+                  className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-edge bg-raised/90 backdrop-blur px-3 py-1 text-xs text-muted hover:text-fg transition-colors"
                 >
-                  <svg viewBox="0 0 24 12" aria-hidden className={`w-5 h-2.5 transition-transform ${folded ? "" : "rotate-180"}`}>
-                    <path d="M2 2l10 8 10-8z" fill="currentColor" />
+                  {folded ? "Voir les champions" : "Masquer"}
+                  <svg viewBox="0 0 24 24" aria-hidden className={`size-3.5 transition-transform ${folded ? "" : "rotate-180"}`}>
+                    <path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
               )}
 
               {/* Ban shatter: the banned champion turns red/grey and breaks in two. */}
               {lastBan && (
-                <div key={banCount} aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden [mask-image:radial-gradient(ellipse_at_center,#000_40%,transparent_75%)]">
+                <div key={banCount} aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden [mask-image:radial-gradient(ellipse_at_center,#000_40%,transparent_78%)]">
                   <img src={fullSplashImg(lastBan)} alt="" className="shatter-a absolute inset-0 size-full object-cover" />
                   <img src={fullSplashImg(lastBan)} alt="" className="shatter-b absolute inset-0 size-full object-cover" />
-                  <span className="shatter-label absolute inset-x-0 bottom-[12%] text-center font-display text-3xl sm:text-5xl tracking-widest text-red-side">
-                    {champName(lastBan)}
+                  <span className="shatter-label absolute inset-x-0 bottom-[14%] text-center text-3xl sm:text-4xl font-semibold tracking-tight text-red-side">
+                    {champName(lastBan)} banni
                   </span>
                 </div>
               )}
 
               {folded ? (
-                <div className="relative flex-1 flex flex-col items-center justify-end overflow-hidden pb-6">
+                <div className="relative flex-1 flex flex-col items-center justify-end overflow-hidden pb-8">
                   {selected ? (
                     <>
                       <img
                         key={selected}
                         src={fullSplashImg(selected)}
                         alt=""
-                        className="absolute inset-0 size-full object-cover anim-fade [mask-image:radial-gradient(ellipse_at_center,#000_35%,transparent_72%)]"
+                        className="absolute inset-0 size-full object-cover anim-fade [mask-image:radial-gradient(ellipse_at_center,#000_30%,transparent_75%)]"
                       />
-                      <p key={`n-${selected}`} className="relative font-display text-3xl sm:text-5xl tracking-[0.12em] text-gold-light anim-rise [text-shadow:0_2px_12px_#000]">
-                        {champName(selected).toUpperCase()}
+                      <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-canvas/90 to-transparent" />
+                      <p key={`n-${selected}`} className="relative text-3xl sm:text-5xl font-semibold tracking-tight anim-rise">
+                        {champName(selected)}
                       </p>
+                      <p className={`relative text-sm mt-1 ${step ? TEXT[step.side] : ""}`}>{step && `${names[step.side]} ${isBan ? "veut bannir" : "survole"}`}</p>
                     </>
                   ) : (
-                    <p className="relative m-auto font-display text-lg text-mute tracking-widest">{step && `${names[step.side]} réfléchit...`}</p>
+                    <p className="relative m-auto text-muted">{step && `${names[step.side]} réfléchit…`}</p>
                   )}
                 </div>
               ) : draft.phase === "swap" ? (
-                <div className="m-auto text-center p-6 max-w-md anim-rise">
-                  <p className="font-display text-gold text-xl mb-2">Échange des rôles</p>
-                  <p className="text-text text-sm">
+                <div className="m-auto text-center p-6 max-w-sm anim-rise">
+                  <p className="text-lg font-semibold mb-1">Échange des rôles</p>
+                  <p className="text-muted text-sm">
                     Clique sur deux de tes champions pour échanger leurs rôles, puis valide. Les rôles sont pré-remplis d&apos;après les games pro.
                   </p>
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-wrap gap-2 items-center p-2 sm:p-3 border-b border-gold-dark/40">
+                  <div className={`flex flex-wrap gap-2 items-center p-3 border-b border-edge ${canFold ? "pt-12" : ""}`}>
                     <div className="relative flex-1 min-w-36">
-                      <svg viewBox="0 0 24 24" aria-hidden className="absolute left-2 top-1/2 -translate-y-1/2 size-4 text-mute">
+                      <svg viewBox="0 0 24 24" aria-hidden className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-faint">
                         <circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" strokeWidth="2" />
                         <path d="m20 20-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
@@ -272,10 +265,10 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Rechercher"
                         aria-label="Rechercher un champion"
-                        className="w-full bg-night/80 border border-gold-dark/60 focus:border-gold pl-8 pr-2 py-1.5 text-sm outline-none transition-colors"
+                        className="w-full rounded-xl bg-canvas border border-edge focus:border-accent pl-9 pr-3 py-2 text-sm placeholder:text-faint outline-none transition-colors"
                       />
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex p-1 rounded-xl bg-canvas border border-edge">
                       {ROLES.map((r) => (
                         <button
                           key={r}
@@ -284,16 +277,16 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                           aria-pressed={role === r}
                           aria-label={`Filtrer ${r}`}
                           title={r}
-                          className={`p-1.5 border transition-colors ${role === r ? "border-gold text-gold bg-gold/10" : "border-transparent text-mute hover:text-gold-light"}`}
+                          className={`p-1.5 rounded-lg transition-colors ${role === r ? "bg-raised text-fg" : "text-faint hover:text-fg"}`}
                         >
-                          <RoleIcon role={r} />
+                          <RoleIcon role={r} className="size-4.5" />
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex-1 min-h-0 max-h-[52vh] lg:max-h-none overflow-y-auto fade-edges px-2 sm:px-3 py-3">
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(58px,1fr))] xl:grid-cols-[repeat(auto-fill,minmax(68px,1fr))] gap-x-2 gap-y-3">
+                  <div className="flex-1 min-h-0 max-h-[52vh] lg:max-h-none overflow-y-auto fade-edges p-3">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(60px,1fr))] xl:grid-cols-[repeat(auto-fill,minmax(70px,1fr))] gap-x-2.5 gap-y-3">
                       {isBan && (
                         <button
                           type="button"
@@ -303,15 +296,15 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                             onHover(step.side, null);
                           }}
                           aria-label="Aucun ban"
-                          className="group flex flex-col items-center gap-1 disabled:cursor-not-allowed"
+                          className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed"
                         >
-                          <span className={`relative flex items-center justify-center w-full aspect-square border bg-night transition-[transform,border-color] duration-150 ${noneSel ? "border-red-side ring-2 ring-red-side scale-105" : "border-gold-dark/50 group-enabled:group-hover:border-gold-light group-enabled:group-hover:scale-105"}`}>
-                            <svg viewBox="0 0 24 24" aria-hidden className="w-1/2 text-mute">
-                              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
-                              <path d="M5.6 18.4 18.4 5.6" stroke="currentColor" strokeWidth="2" />
+                          <span className={`flex items-center justify-center w-full aspect-square rounded-lg bg-raised border transition-[transform,border-color] duration-150 ${noneSel ? "border-red-side ring-2 ring-red-side/60 scale-105" : "border-edge group-enabled:group-hover:border-faint group-enabled:group-hover:scale-105"}`}>
+                            <svg viewBox="0 0 24 24" aria-hidden className="w-1/2 text-faint">
+                              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.75" />
+                              <path d="M5.6 18.4 18.4 5.6" stroke="currentColor" strokeWidth="1.75" />
                             </svg>
                           </span>
-                          <span className={`text-[10px] leading-tight ${noneSel ? "text-red-side" : "text-text"}`}>Aucun</span>
+                          <span className={`text-[11px] leading-tight ${noneSel ? "text-red-side" : "text-muted"}`}>Aucun</span>
                         </button>
                       )}
                       {list.map((id) => {
@@ -327,35 +320,29 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
                               if (step) onHover(step.side, id);
                             }}
                             title={champName(id)}
-                            className="group flex flex-col items-center gap-1 disabled:cursor-not-allowed"
+                            className="group flex flex-col items-center gap-1.5 disabled:cursor-not-allowed"
                           >
-                            <span className={`relative block w-full aspect-square overflow-hidden border transition-[transform,border-color] duration-150 ${isSel ? "border-gold ring-2 ring-gold scale-105" : "border-gold-dark/50"} ${free ? "group-enabled:group-hover:border-gold-light group-enabled:group-hover:scale-105" : ""}`}>
-                              <img src={champImg(id)} alt="" loading="lazy" className={`size-full scale-110 ${free ? "" : "grayscale opacity-35"}`} />
-                              {!free && (
-                                <span aria-hidden className="absolute inset-0 flex items-center justify-center">
-                                  <span className="block w-[140%] h-px bg-gold-light/50 -rotate-45" />
-                                </span>
-                              )}
+                            <span
+                              className={`relative block w-full aspect-square rounded-lg overflow-hidden border transition-[transform,border-color,opacity] duration-150 ${isSel ? `scale-105 ring-2 ${isBan ? "border-red-side ring-red-side/60" : "border-accent ring-accent/60"}` : "border-transparent"} ${free ? "group-enabled:group-hover:scale-105 group-enabled:group-hover:border-faint" : "opacity-25"}`}
+                            >
+                              <img src={champImg(id)} alt="" loading="lazy" className={`size-full scale-110 ${free ? "" : "grayscale"}`} />
                             </span>
-                            <span className={`text-[10px] leading-tight w-full truncate text-center ${free ? (isSel ? "text-gold" : "text-text") : "text-mute/60"}`}>{champName(id)}</span>
+                            <span className={`text-[11px] leading-tight w-full truncate text-center ${isSel ? "text-fg font-medium" : free ? "text-muted" : "text-faint/60"}`}>{champName(id)}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  <div className="sticky bottom-0 lg:static flex flex-wrap items-center justify-center gap-x-4 gap-y-2 p-2 sm:p-3 border-t border-gold-dark/40 bg-night/90 lg:bg-transparent">
-                    <div className="relative">
-                      {myTurn && (selected || noneSel) && <div aria-hidden className={`lock-glow absolute -inset-2 blur-md ${isBan ? "bg-red-side/40" : "bg-gold/40"}`} />}
-                      <button
-                        type="button"
-                        className={`btn-lock relative px-12 sm:px-16 py-2.5 text-sm ${isBan ? "ban" : ""}`}
-                        disabled={!myTurn || !(selected || noneSel)}
-                        onClick={() => step && onLock(step.side, noneSel ? null : selected)}
-                      >
-                        {isBan ? "Ban" : "Lock in"}
-                      </button>
-                    </div>
+                  <div className="sticky bottom-0 lg:static flex justify-center p-3 border-t border-edge bg-surface">
+                    <button
+                      type="button"
+                      className={`btn ${isBan ? "danger" : "primary"} min-w-48 py-2.5`}
+                      disabled={!myTurn || !(selected || noneSel)}
+                      onClick={() => step && onLock(step.side, noneSel ? null : selected)}
+                    >
+                      {isBan ? "Bannir" : "Verrouiller"}
+                    </button>
                   </div>
                 </>
               )}
@@ -364,10 +351,10 @@ export default function ChampSelect({ draft, clockOffset = 0, controls, names, i
             <div className="order-2 lg:order-3 min-h-0">{teamColumn("red")}</div>
           </div>
 
-          <footer className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] text-mute">
-            <Link href="/" className="font-display text-gold tracking-widest hover:text-gold-light">DRAFTDIFF</Link>
+          <footer className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <span className="hidden lg:inline"><Logo /></span>
             <div className="flex-1 flex justify-center">{info}</div>
-            <p className="hidden lg:block max-w-md text-[9px] leading-tight text-right opacity-70">
+            <p className="hidden lg:block max-w-sm text-[9px] leading-tight text-right text-faint">
               Draftdiff isn&apos;t endorsed by Riot Games and doesn&apos;t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
             </p>
           </footer>
