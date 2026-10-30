@@ -137,7 +137,7 @@ export default function LocalGame() {
       draft={draft}
       controls={ai ? [human] : ["blue", "red"]}
       names={names}
-      top={<SeriesBar series={series} names={names} extra={<button className="underline text-mute" onClick={restart}>Recommencer</button>} />}
+      info={<SeriesBar series={series} names={names} extra={<button className="underline text-mute" onClick={restart}>Recommencer</button>} />}
       onHover={(side, c) => apply((d) => hover(d, side, c))}
       onLock={(side, c) => apply((d) => lock(d, side, c, Date.now()))}
       onSwap={(side, i, j) => apply((d) => swapRoles(d, side, i, j))}

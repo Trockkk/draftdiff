@@ -21,3 +21,6 @@ export function champStats(id: string) {
     winrate: played.g ? played.w / played.g : null,
   };
 }
+
+export const splashImg = (id: string) => `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${id}_0.jpg`;
+export const mapImg = () => `https://ddragon.leagueoflegends.com/cdn/${PRO.meta.ddragonVersion}/img/map/map11.png`;

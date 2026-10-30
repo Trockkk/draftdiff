@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- Data Dragon images */
+import { motion, MotionConfig } from "motion/react";
 import { ROLES, type Side } from "@/lib/draft/config";
 import { champImg, champName, PRO } from "@/lib/data";
 import type { Analysis } from "@/lib/predict/explain";
@@ -50,7 +51,8 @@ export default function ResultView({
   const other = result.factors.filter((f) => f.kind !== "matchup" && f.kind !== "champ");
 
   return (
-    <div className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 flex flex-col gap-6">
+    <MotionConfig reducedMotion="user">
+    <div className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 flex flex-col gap-6 anim-fade">
       <div className="flex flex-wrap justify-between gap-4">{team("blue", blue)}{team("red", red)}</div>
 
       <section aria-label="Probabilité de victoire" className="flex flex-col gap-2">
@@ -58,9 +60,14 @@ export default function ResultView({
           <span className="text-blue-side">{b} %</span>
           <span className="text-red-side">{100 - b} %</span>
         </div>
-        <div className="h-4 flex border border-gold-dark">
-          <div className="bg-blue-side/80" style={{ width: `${b}%` }} />
-          <div className="bg-red-side/80 flex-1" />
+        <div className="h-4 bg-red-side/80 border border-gold-dark overflow-hidden">
+          {/* Fills from 50/50 to the predicted split (transform only). */}
+          <motion.div
+            className="h-full bg-blue-side/90 origin-left"
+            initial={{ scaleX: 0.5 }}
+            animate={{ scaleX: result.blueWin }}
+            transition={{ duration: 1.1, ease: [0.2, 0.8, 0.2, 1], delay: 0.2 }}
+          />
         </div>
         <p className="text-gold-light text-lg">{a.summary}</p>
         {!result.ai && <p className="text-xs text-mute">Explication générée sans IA (pas de clé API ou service indisponible).</p>}
@@ -68,7 +75,7 @@ export default function ResultView({
 
       <section className="grid sm:grid-cols-2 gap-3">
         {a.reasons.map((r, i) => (
-          <article key={i} className={`gold-frame bg-panel/70 p-3 border-l-4 ${r.side === "blue" ? "border-l-blue-side" : "border-l-red-side"}`}>
+          <article key={i} style={{ animationDelay: `${0.4 + i * 0.08}s` }} className={`anim-rise gold-frame bg-panel/70 p-3 border-l-4 ${r.side === "blue" ? "border-l-blue-side" : "border-l-red-side"}`}>
             <h3 className="font-display text-gold text-sm">{r.title}</h3>
             <p className="text-sm text-text mt-1">{r.detail}</p>
           </article>
@@ -117,5 +124,6 @@ export default function ResultView({
 
       {actions && <div className="flex flex-wrap gap-3 justify-center">{actions}</div>}
     </div>
+    </MotionConfig>
   );
 }

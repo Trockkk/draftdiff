@@ -152,7 +152,13 @@ function Room({ code, name }: { code: string; name: string }) {
       <div className="max-w-2xl w-full mx-auto px-4 py-8 flex flex-col gap-6">
         <section className="gold-frame bg-panel/70 p-5 text-center flex flex-col gap-3">
           <h1 className="text-sm text-text">Invite ton ami avec ce code</h1>
-          <div className="font-display text-5xl sm:text-6xl tracking-[0.3em] text-gold select-all">{code}</div>
+          <div className="font-display text-5xl sm:text-6xl tracking-[0.3em] text-gold select-all" aria-label={code}>
+            {[...code].map((ch, i) => (
+              <span key={i} aria-hidden className="inline-block anim-pop" style={{ animationDelay: `${i * 0.07}s` }}>
+                {ch}
+              </span>
+            ))}
+          </div>
           <div className="flex flex-wrap justify-center gap-2">
             <button className="btn-gold px-4 py-2 text-xs" onClick={() => copy(code, "code")}>{copied === "code" ? "Copié ✓" : "Copier le code"}</button>
             <button className="btn-gold px-4 py-2 text-xs" onClick={() => copy(link, "link")}>{copied === "link" ? "Copié ✓" : "Copier le lien"}</button>
@@ -173,7 +179,7 @@ function Room({ code, name }: { code: string; name: string }) {
             return (
               <div key={s} className={`gold-frame bg-panel/70 p-4 border-t-4 ${s === "blue" ? "border-t-blue-side" : "border-t-red-side"}`}>
                 <div className={`text-xs ${s === "blue" ? "text-blue-side" : "text-red-side"}`}>{s === "blue" ? "BLUE SIDE" : "RED SIDE"}{room.host === s && " · hôte"}</div>
-                <div className="font-display text-lg">{p ? p.name : <span className="text-mute">En attente...</span>}{me === s && " (toi)"}</div>
+                <div key={p?.name ?? "empty"} className={`font-display text-lg ${p ? "anim-pop" : ""}`}>{p ? p.name : <span className="text-mute">En attente...</span>}{me === s && " (toi)"}</div>
                 <div className="text-sm">{p && (p.ready ? <span className="text-green-400">Prêt ✓</span> : <span className="text-mute">Pas prêt</span>)}</div>
               </div>
             );
@@ -238,7 +244,7 @@ function Room({ code, name }: { code: string; name: string }) {
         clockOffset={offset}
         controls={me ? [me] : []}
         names={names}
-        top={<><SeriesBar series={room.series} names={names} extra={status} />{errorBar}</>}
+        info={<><SeriesBar series={room.series} names={names} extra={status} />{errorBar}</>}
         onHover={(_, champ) => send({ t: "hover", champ })}
         onLock={(_, champ) => send({ t: "lock", champ })}
         onSwap={(_, i, j) => send({ t: "swap", i, j })}
